@@ -22,14 +22,20 @@ class Function:
             assing the paramters to blank variables in the function
         """
         for p in params:
-            self.params[p] == None
+            self.params[p] = None
         self.params['parent'] = self.env
 
-    def assign_params(self, values):
-        index = 0
-        for p in self.params:
-            self.params[p] = values[index]
-            index +=1
+    # def assign_params(self, values):
+    #     index = 0
+    #     for p in self.params:
+    #         self.params[p] = values[index]
+    #         index +=1
+    def get_params(self):
+        return list(self.params.keys())
+
+    def __str__(self):
+        # print('here i am')
+        return 'function to do ' + str(self.function)
 
     # def evaluate(self, values):
     #     """
@@ -230,7 +236,62 @@ def evaluate_helper(tree, env = None):
             return tree[0]
         keyword, evl = tree[0], tree[1:]
         # print(keyword, evl)
-        if keyword == 'define':
+        # if type(evl) == list:
+        #     # val = 0
+        #     # for e in evl:
+        #     #     print(e)
+        #     #     val += evaluate_helper(e, env)
+        #     # print(val)
+        #     # key, e = evl[0][0], evl[0][1:][0]
+        #     # print(key, e)
+        #     # val = evaluate_helper([key, e], env)
+        #     # print(val)
+        #     for e in evl[0]:
+        #         print('first')
+        #         print(e)
+        #         # print(e)
+        #         x = evaluate_helper(e, env)
+
+        if type(keyword) == list:
+            # print(keyword)
+            f = evaluate_helper(keyword, env)
+            # print([f, evl])
+            # print(env)
+            # print(f.params)
+            # val = f(evl)
+            # print(val)
+            val = evaluate_helper([f, evl], env)
+            # print(val)
+            return val
+
+        elif type(keyword) == Function:
+            function = keyword
+            orig_env = function.env.copy()
+            # print('this is a function call')
+            params = function.get_params()
+            # print(function, params, evl[0])
+            evl = evl[0]
+            # print(params, evl)
+            index = 0
+            for p in params:
+                if p == 'parent':
+                    continue
+                # print(p, evl[index], type(evl[index]))
+                if type(evl[index]) == str:
+                    function.params[p] = get_env(orig_env, evl[index])[evl[index]]
+                    index +=1
+                if type(evl[index]) == list:
+                    function.params[p] = evaluate_helper(evl[index], env)
+                    index +=1
+                if type(evl[index]) == int or type(evl[index]) == float:
+                    function.params[p] = evl[index]
+                    index +=1
+            var = evaluate_helper(function.function, function.params)
+            # print(var)
+            # print(function.params, function.function)
+            return var
+
+        elif keyword == 'define':
             # val = evaluate_helper(tree, env)
             # env[keyword] = val
             # print('evl', evl)
@@ -240,6 +301,15 @@ def evaluate_helper(tree, env = None):
             # print('the val is', val)
             env[var] = val
             return val
+
+        elif keyword == 'lambda':
+            params, function = evl
+            # print(params, function)
+            function = Function(env, function)
+            function.start_params(params)
+            # print('created function')
+            # print(function)
+            return function
         
         elif keyword not in env:
             # print(env)
@@ -261,14 +331,39 @@ def evaluate_helper(tree, env = None):
             return work_env[keyword](evl)
 
         elif keyword in env:
-            orig_env = env.copy()
-            for index, var in enumerate(evl):
-                if type(var) == str:
-                    evl[index] = get_env(orig_env, var)[var]
-                    # env = orig_env
-                if type(var) == list:
-                    evl[index] = evaluate(var, env)
-            return env[keyword](evl)
+            if type(env[keyword]) == Function:
+                function = env[keyword]
+                orig_env = function.env.copy()
+                # print('this is a function call')
+                params = function.get_params()
+                # print(params, evl)
+                index = 0
+                for p in params:
+                    if p == 'parent':
+                        continue
+                    # print(p, evl[index], type(evl[index]))
+                    if type(evl[index]) == str:
+                        function.params[p] = get_env(orig_env, evl[index])[evl[index]]
+                        index +=1
+                    if type(evl[index]) == list:
+                        function.params[p] = evaluate_helper(evl[index], env)
+                        index +=1
+                    if type(evl[index]) == int or type(evl[index]) == float:
+                        function.params[p] = evl[index]
+                        index +=1
+                var = evaluate_helper(function.function, function.params)
+                # print(var)
+                # print(function.params, function.function)
+                return var
+            else:
+                orig_env = env.copy()
+                for index, var in enumerate(evl):
+                    if type(var) == str:
+                        evl[index] = get_env(orig_env, var)[var]
+                        # env = orig_env
+                    if type(var) == list:
+                        evl[index] = evaluate_helper(var, env)
+                return env[keyword](evl)
 
     # print(env)
 
