@@ -90,6 +90,7 @@ class LispTest(unittest.TestCase):
         inp, out = self.load_test_values(n)
         for i, o in zip(inp, out):
             # print(i, o)
+            # print(tester(i))
             self._compare_outputs(tester(i), o)
 
 

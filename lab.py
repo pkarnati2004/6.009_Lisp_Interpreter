@@ -14,57 +14,24 @@ class Function:
             intialize values for function
         """
         self.params = params
-        self.env = parent.copy()
-        # self.env = dict(parent)
+        # self.env = parent.copy()
+        self.env = parent
+        # self.env = parent
         self.function = function
-
-    # def start_params(self, params):
-    #     """
-    #         assing the paramters to blank variables in the function
-    #     """
-    #     for p in params:
-    #         self.params[p] = None
-    #     self.params['parent'] = self.env
-
-    # def assign_params(self, values):
-    #     index = 0
-    #     for p in self.params:
-    #         self.params[p] = values[index]
-    #         index +=1
-    # def get_params(self):
-    #     return list(self.params.keys())
-
     def __str__(self):
         # print('here i am')
         return 'function to do ' + str(self.function)
-
-    # def evaluate(self, values):
-    #     """
-    #         function to evaluate the function
-    #     """
-    #     ## first go and assign the parameters 
-    #     for index, val in values:
-    #         if type(val) == int or type(val) == float:
-    #             self.params[index] = val
-    #         if type(val) == str:
-    #             try:
-    #                 self.params[index] = get_env(self.env, val)[val]
-    #             except:
-    #                 raise EvaluationError
-    #     return self.function
 
 class Environment:
     def __init__(self, parent):
         self.env = {}
         self.parent = parent
-    def access_env(self):
-        return self.env
+    # def access_env(self):
+    #     return self.env
     # def check_val(self, val):
     #     raise NotImplementedError
     def add_val(self, var, val):
         self.env[var] = val
-    def update_env(self, new_env):
-        self.env.update(new_env)
 
 def tokenize(source):
     """
@@ -194,7 +161,6 @@ carlae_builtins = {
     '/': divide,
 }
 
-
 def get_env(env, symbol):
     new_env = env.copy()
     while new_env != None:
@@ -208,6 +174,14 @@ def get_env(env, symbol):
             new_env = new_env['parent']
     return None
 
+def get_env_part_2(env, symbol):
+    if symbol in env.env:
+        return env.env[symbol]
+    if env.parent:
+        return get_env_part_2(env.parent, symbol)
+    raise EvaluationError
+
+
 def evaluate_function(keyword, evl):
     if keyword in carlae_builtins.values():
         return keyword(evl)
@@ -218,19 +192,33 @@ def evaluate_function(keyword, evl):
     else:
         # print('here')
         # print(keyword.env)
+        this_env = Environment(keyword.env)
         for i in range(len(evl)):
-            evaluate_helper(['define', keyword.params[i], evl[i]], keyword.env)
+            # evaluate_helper(['define', keyword.params[i], evl[i]], keyword.env)
+            evaluate_helper(['define', keyword.params[i], evl[i]], this_env)
         # print(keyword.)
-        return evaluate_helper(keyword.function, keyword.env)
+        # return evaluate_helper(keyword.function, keyword.env)
+        return evaluate_helper(keyword.function, this_env)
 
 def evaluate_helper(tree, env = None):
+    # print(tree, env)
     if type(tree) == int or type(tree) == float:
+        # print('here')
         return tree
     elif type(tree) == str:
+        # print(int(tree))
+        # print(tree)
+        # try:
+        #     return int(tree)
+        # except:
+        #     pass
         try:
-            if tree not in env:
-                env = get_env(env, tree)
-            return env[tree]
+            # if tree not in env:
+            #     env = get_env(env, tree)
+            # return env[tree]
+            # print('here')
+            # print(env)
+            return get_env_part_2(env, tree)
         except:
             raise EvaluationError
     elif type(tree) == Function:
@@ -255,12 +243,16 @@ def evaluate_helper(tree, env = None):
                 # print(new_def)
                 val = evaluate_helper(new_def[2], env)
                 # print(val)
-                env[new_def[1]] = val
+                # env[new_def[1]] = val
+                env.add_val(new_def[1], val)
+                # print(env)
                 return val
             else:
                 val = evaluate_helper(evl, env)
                 # val = evaluate_helper(rest[1], env)
-                env[var] = val
+                # env[var] = val
+                env.add_val(var, val)
+                # print(env)
                 return val
         elif keyword == 'lambda':
             # var, evl = rest[0], rest[1]
@@ -269,13 +261,17 @@ def evaluate_helper(tree, env = None):
         else:
             # print('here')
             try:
+                # print(keyword, env)
                 function = evaluate_helper(keyword, env)
                 # print(function)
                 params = []
+                # print(function)
                 for val in tree[1:]:
+                    # print('first', val)
                     v = evaluate_helper(val, env)
                     # print(v)
                     params.append(v)
+                # print(params)
                 # params = [evaluate_helper(i, env) for i in tree[1:]]
                 # print(function, params)
                 return evaluate_function(function, params)
@@ -295,8 +291,13 @@ def evaluate(tree, env = None):
     """
     # raise NotImplementedError
 
-    if env == None:
-        env = {'parent': carlae_builtins}
+    # if env == None:
+    #     env = {'parent': carlae_builtins}
+    builtins = Environment(None)
+    # builtins.update_env(carlae_builtins)
+    builtins.env = carlae_builtins
+    if not env:
+        env = Environment(builtins)
 
     return evaluate_helper(tree, env)
 
@@ -463,17 +464,37 @@ def evaluate_helper_1(tree):
             return tree
         return carlae_builtins[tree[0]](tree[1:])
 
-def_env = {'parent': carlae_builtins}
+# def_env = {'parent': carlae_builtins}
 
-def make_new_env(env = None):
-    if not env:
-        def_env = {'parent': carlae_builtins}
-        return def_env
-    return env
+builtins = Environment(None)
+# builtins.update_env(carlae_builtins)
+builtins.env = carlae_builtins
+def_env = Environment(builtins)
+
+# def make_new_env(env = None):
+#     if not env:
+#         def_env = {'parent': carlae_builtins}
+#         return def_env
+#     return env
 
 def result_and_env(tree, env = None):
-    if env == None:
-        env = {'parent': carlae_builtins}
+    # if env == None:
+    #     env = {'parent': carlae_builtins}
+    # result = evaluate(tree, env)
+    # # print(result)
+    # return (result, env)
+    
+    # all_parent = Environment(None)
+    # all_parent.update_env(carlae_builtins)
+    # if not env:
+    #     env = Environment(all_parent)
+    # result = evaluate(tree, env)
+    # return (result, env)
+    builtins = Environment(None)
+    # builtins.update_env(carlae_builtins)
+    builtins.env = carlae_builtins
+    if not env:
+        env = Environment(builtins)
     result = evaluate(tree, env)
     # print(result)
     return (result, env)
@@ -485,6 +506,7 @@ def REPL():
             env = make_new_env()
             # print('  outpt > ', result_and_env(parse(tokenize(inp)), def_env))
             print('  outpt > ', evaluate(parse(tokenize(inp)), def_env))
+            # print(result_and_env(parse(tokenize(inp)), def_env))
         except:
             e = sys.exc_info()[0]
             print('  outpt: ', e)
