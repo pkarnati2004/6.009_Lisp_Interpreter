@@ -11,27 +11,41 @@ class EvaluationError(Exception):
 class Function:
     def __init__(self, params, parent, function):
         """
-            intialize values for function
+        intialize values for function
+            params: list of parameters, initially variables
+            parent: parent pointer to parent env
+            function: actual function to run
         """
         self.params = params
-        # self.env = parent.copy()
         self.env = parent
-        # self.env = parent
         self.function = function
     def __str__(self):
-        # print('here i am')
+        """
+        string representation of function
+        """
         return 'function to do ' + str(self.function)
 
 class Environment:
     def __init__(self, parent):
+        """
+        intialize values for environment:
+            env: current environment var-->val
+            parent: parent pointer to parent env
+        """
         self.env = {}
         self.parent = parent
-    # def access_env(self):
-    #     return self.env
-    # def check_val(self, val):
-    #     raise NotImplementedError
     def add_val(self, var, val):
+        """
+        add a value and variable to environment
+        """
         self.env[var] = val
+    def __str__(self):
+        """
+        string representation of environment
+        """
+        print('environemnt as following')
+        for var in self.env:
+            print(var, '->', self.env[var])
 
 def tokenize(source):
     """
@@ -42,45 +56,64 @@ def tokenize(source):
         source (str): a string containing the source code of a carlae
                       expression
     """
-    
-    # return tokenize_helper(source)
+    # intialize tokenize list
     tokenized_list = []
+    # for every word returned by tokenize, append to list
     for word in tokenize_helper(source):
         tokenized_list.append(word)
+    # return list
     return tokenized_list
 
 def tokenize_helper(source):
-    """ helpher for tokenize
+    """ 
+    helper for tokenize: iteratively return values
     """
+    # intialize position to start from and index
     pos = 0
     index = 0
+    # while index < string length
     while index < len(source):
+        # get the value at this index
         char = source[index]
         # print(index, source[pos:index], char)
+        # if this is a '(' we know to return this
+        # increment the position as the next place to start from
         if char == '(':
             yield char
             pos = index + 1
+        # if this is a space, return the stuff up to this space as long
+        # as that is not a space
+        # increment position as next place to start from
         if char == ' ':
             if source[pos:index] != '' and source[pos:index] != ' ':
                 yield source[pos:index]
             pos = index + 1
+        # if right paren, return stuff up to this
+        # increment position
         if char == ')':
             if pos != 0 and pos != index:
                 yield source[pos:index]
             yield char
             pos = index + 1
+        # if index is not the second to last, check for newlines
         if index < len(source) - 1:
+            # if newline exists, return up to this
+            # increment index and position
             if source[index:index+1] == '\n':
                     yield source[pos:index]
                     index +=1 
                     pos = index
+        # if comment (;), find the next newline or the end of the 
+        # statement and change position and index to that value
         if char == ';':
             try:
                 pos = index = index +  source[index:].index('\n') + 2
             except:
                 pos = index = len(source)
+        # increment index
         index += 1
     # print(pos, len(source))
+    # if not at the end, return up to the end
     if pos != len(source):
         yield source[pos:]
 
@@ -97,17 +130,29 @@ def parse(tokens):
     Arguments:
         tokens (list): a list of strings representing tokens
     """
-    # raise NotImplementedError
+    # get parsed values from helper and return
+    # first index
     parsed = parse_helper(tokens)
     # print('mine prints', parsed[0])
     return parsed[0]
 
 def parse_helper(tokens):
+    """
+    helper for parser: recursive function for tokens
+    """
     # print(tokens)
+    # if at the end of tokens, return empty string
     if tokens == []:
         return tokens
+    # if the first value is a left parent, check for matching right paren
     if tokens[0] == '(':
+        # start parent counter
         paren = 1
+        # for the index and val, if it is
+        #   left paren: add 1
+        #   right parent: subtract 1
+        # counter is 0, break and return index
+        # if there is no matching, raise Error
         for r_index, val in enumerate(tokens[1:]):
             if val == '(':
                 paren+=1
@@ -118,18 +163,28 @@ def parse_helper(tokens):
         if paren != 0:
             raise SyntaxError
         r_index += 1
+        # recursively call helper on this subproblem and the rest of the tokens
         return [parse_helper(tokens[1:r_index])] + parse_helper(tokens[r_index+1:])
+    # if there's a random unaccounted ), raise Error
     if tokens[0] == ')':
         raise SyntaxError
+    # for non parens: return current value + parser on rest of tokens
     if not convert_int(tokens[0]):
         # print('hello')
+        # then try to convert to float
         if not convert_float(tokens[0]):
+            # return string representation if you can't do either
             return [tokens[0]] + parse_helper(tokens[1:])
+        # if float possible, do float
         return [convert_float(tokens[0])] + parse_helper(tokens[1:])
     else:
+        # if int possible, do int
         return [convert_int(tokens[0])] + parse_helper(tokens[1:])
 
 def convert_int(x):
+    """
+    helper to try int conversion
+    """
     try:
         # f = float(x)
         return int(x)
@@ -137,20 +192,32 @@ def convert_int(x):
         return False
 
 def convert_float(x):
+    """
+    helper to try float conversion
+    """
     try:
         return float(x)
     except:
         return False
 
 def multiply(l):
+    """
+    helper for multiply
+    """
     a = 1
+    # multiply vals in list
     for val in l:
         a = a*val
     return a
 
 def divide(l):
+    """
+    helper for divide
+    """
+    # if two, divide 2
     if len(l) == 2:
         return l[0]/l[1]
+    # if more than 2, divide first by rest
     else:
         return l[0]/multiply(l[1:])
 
@@ -161,123 +228,125 @@ carlae_builtins = {
     '/': divide,
 }
 
-def get_env(env, symbol):
-    new_env = env.copy()
-    while new_env != None:
-        # if not env.get(symbol):
-        #     env = env['parent']
-        # else:
-        #     return env.get(symbol)
-        if symbol in new_env:
-            return new_env
-        else:
-            new_env = new_env['parent']
-    return None
-
 def get_env_part_2(env, symbol):
-    if symbol in env.env:
-        return env.env[symbol]
-    if env.parent:
-        return get_env_part_2(env.parent, symbol)
+    """
+    helper to return value of symbol given environment
+    """
+    # to not mutate env
+    new_env = env
+    # while the env is not None
+    while new_env != None:
+        # if thes symbol exists in the env, return value
+        if symbol in new_env.env:
+            return new_env.env[symbol]
+        # set env to its parent
+        else:
+            new_env = new_env.parent
+    # if not found, raise Error
     raise EvaluationError
 
 
 def evaluate_function(keyword, evl):
+    """
+    helper to evaluate a function given a keyword and the params
+    to evaluate
+    """
+    # if this is a basic keyword in builtins, evaluate builtin
     if keyword in carlae_builtins.values():
         return keyword(evl)
+    # if the parameter lengths do not match, raise Error
     elif len(keyword.params) != len(evl):
         raise EvaluationError
+    # if this is not a function, raise Error
     elif type(keyword) != Function:
         raise EvaluationError
     else:
+        # print(keyword, evl)
         # print('here')
-        # print(keyword.env)
+        # create working environemnt
         this_env = Environment(keyword.env)
+        # for every value to evaluate, define the parameter variable as this value
         for i in range(len(evl)):
-            # evaluate_helper(['define', keyword.params[i], evl[i]], keyword.env)
             evaluate_helper(['define', keyword.params[i], evl[i]], this_env)
-        # print(keyword.)
-        # return evaluate_helper(keyword.function, keyword.env)
+        # evaluate this function in the environment with updated parameters
         return evaluate_helper(keyword.function, this_env)
 
 def evaluate_helper(tree, env = None):
-    # print(tree, env)
+    """ 
+    recursive helper for evaluate
+    """
+    # if tree is simple int or float, return value
     if type(tree) == int or type(tree) == float:
-        # print('here')
         return tree
+    # if tree is a string, try to return the value of the
+    # var or raise an Exception if it does not exist
     elif type(tree) == str:
-        # print(int(tree))
-        # print(tree)
-        # try:
-        #     return int(tree)
-        # except:
-        #     pass
         try:
-            # if tree not in env:
-            #     env = get_env(env, tree)
-            # return env[tree]
-            # print('here')
-            # print(env)
             return get_env_part_2(env, tree)
         except:
             raise EvaluationError
+    # if tree is a function return function
     elif type(tree) == Function:
         return tree
+    # if tree is a list, do things with components
     elif type(tree) == list:
-        # if len(tree) == 1:
-        #     return tree[0]
+        # if tree is empty, raise error
         if not tree:
             raise EvaluationError
+        # grab the keyword, var, and evl values
         try:
             keyword, var, evl = tree[0], tree[1], tree[2]
+        # if there aren't three, just grab keyword and rest
         except:
             keyword, rest = tree[0], tree[1:]
         # print(keyword, var, evl)
+        # if this is define
         if keyword == 'define':
-            # if type(var) == list:
-            # var, evl = rest[0], rest[1]
-            # print(var, evl)
+            # if the variable is a list (generally a function)
             if type(var) == list:
+                # change the representation to a lambda function
+                # representation so that it is easier to work with
                 new_def = ['define', var[0], ['lambda', var[1:], evl]]
-                # new_def = ['define', rest[0][1], rest[0][1:], rest[1]]
-                # print(new_def)
+                # evaluate and get function
                 val = evaluate_helper(new_def[2], env)
-                # print(val)
-                # env[new_def[1]] = val
+                # add this function 
                 env.add_val(new_def[1], val)
-                # print(env)
+                # env.env[new_def[1]] = val
                 return val
+            # if not, this is probably a variable
             else:
+                # evaluate the variable
                 val = evaluate_helper(evl, env)
-                # val = evaluate_helper(rest[1], env)
-                # env[var] = val
+                # add to environemnt
                 env.add_val(var, val)
+                # env.env[var] = val
                 # print(env)
                 return val
+        # if this is a function
         elif keyword == 'lambda':
-            # var, evl = rest[0], rest[1]
+            # create a function with the env as parent, variables,
+            # and the function to evaluate 
             function = Function(var, env, evl)
             return function
+        # if this thing is none of the above, actually evaluate
         else:
-            # print('here')
             try:
-                # print(keyword, env)
+                # grab the function of the keyword
                 function = evaluate_helper(keyword, env)
-                # print(function)
                 params = []
-                # print(function)
+                # for every value in the rest which is a paren
                 for val in tree[1:]:
-                    # print('first', val)
+                    # evaluate this val to get value
                     v = evaluate_helper(val, env)
-                    # print(v)
+                    # add this to the parameters
                     params.append(v)
-                # print(params)
-                # params = [evaluate_helper(i, env) for i in tree[1:]]
-                # print(function, params)
+                # evaluate this function with these parameters
                 return evaluate_function(function, params)
             except:
+                # raise Error if this doesn't work for some reason
                 raise EvaluationError
     else:
+        # raise Error if nothing works
         raise EvaluationError
 
 def evaluate(tree, env = None):
@@ -291,226 +360,51 @@ def evaluate(tree, env = None):
     """
     # raise NotImplementedError
 
-    # if env == None:
-    #     env = {'parent': carlae_builtins}
+    # create original parent of all: builtins
     builtins = Environment(None)
-    # builtins.update_env(carlae_builtins)
     builtins.env = carlae_builtins
+    # if env doesn't exist, create new env with this as parent
     if not env:
         env = Environment(builtins)
-
+    # run helper and get values
     return evaluate_helper(tree, env)
 
-
-def evaluate_helper_2(tree, env = None):
-    # print(tree, env)
-    if type(tree) == int or type(tree) == float:
-        return tree
-    elif type(tree) == str:
-        try:
-            if tree not in env:
-                env = get_env(env, tree)
-            return env[tree]
-        except:
-            raise EvaluationError
-    elif type(tree) == list:
-        if len(tree) == 1:
-            return tree[0]
-        if len(tree) == 0:
-            raise EvaluationError
-        keyword, evl = tree[0], tree[1:]
-        # print(keyword, evl)
-
-        if type(keyword) == list:
-            # print('here')
-            f = evaluate_helper(keyword, env)
-            # print([f, evl])
-            # print(env)
-            # print(f.params)
-            # val = f(evl)
-            # print(val)
-            val = evaluate_helper([f, evl], env)
-            # print(val)
-            return val
-
-        elif type(keyword) == Function:
-            function = keyword
-            orig_env = function.env.copy()
-            # print('this is a function call')
-            params = function.get_params()
-            # print(function, params, evl[0])
-            evl = evl[0]
-            # print(evl, params)
-            if len(evl) != len(params[1:]):
-                raise EvaluationError
-            # print(params, evl)
-            index = 0
-            for p in params[1:]:
-                if p == 'parent':
-                    continue
-                # print(p, evl[index], type(evl[index]))
-                if type(evl[index]) == str:
-                    function.params[p] = get_env(orig_env, evl[index])[evl[index]]
-                    index +=1
-                if type(evl[index]) == list:
-                    function.params[p] = evaluate_helper(evl[index], env)
-                    index +=1
-                if type(evl[index]) == int or type(evl[index]) == float:
-                    function.params[p] = evl[index]
-                    index +=1
-            var = evaluate_helper(function.function, function.params)
-            # print(var)
-            # print(function.params, function.function)
-            return var
-
-        elif keyword == 'define':
-            # val = evaluate_helper(tree, env)
-            # env[keyword] = val
-            # print('evl', evl)
-            var, ev = evl[0], evl[1]
-            # print('var', var, 'ev', ev)
-            if type(var) == list:
-                new_def = ['define', var[0], ['lambda', var[1:], ev]]
-                # print(new_def)
-                val = evaluate_helper(new_def, env)
-                env[var[0]] = val
-                # print(val)
-                return val
-            else:
-                val = evaluate_helper(ev, env)
-                # print('the val is', val)
-                env[var] = val
-                return val
-
-        elif keyword == 'lambda':
-            params, function = evl
-            # print(params, function)
-            function = Function(env, function)
-            function.start_params(params)
-            # print('created function')
-            # print(function)
-            return function
-        
-        elif keyword not in env:
-            # print('here')
-            # print(env)
-            try:
-                orig_env = env.copy()
-                work_env = get_env(env, keyword)
-                # print('working', work_env)
-                # print('original', orig_env)
-                if not work_env:
-                    raise EvaluationError
-                # return evaluate_helper(tree, env)
-                for index, var in enumerate(evl):
-                    if type(var) == str:
-                        # print(var, 'is not an int')
-                        evl[index] = get_env(orig_env, var)[var]
-                        # env = orig_env
-                    if type(var) == list:
-                        evl[index] = evaluate(var, env)
-                # print(evl)
-                return work_env[keyword](evl)
-            except:
-                raise EvaluationError
-
-        elif keyword in env:
-            if type(env[keyword]) == Function:
-                function = env[keyword]
-                orig_env = function.env.copy()
-                # print('this is a function call')
-                params = function.get_params()
-                # print(params, evl)
-                index = 0
-                for p in params:
-                    if p == 'parent':
-                        continue
-                    # print(p, evl[index], type(evl[index]))
-                    if type(evl[index]) == str:
-                        function.params[p] = get_env(orig_env, evl[index])[evl[index]]
-                        index +=1
-                    if type(evl[index]) == list:
-                        function.params[p] = evaluate_helper(evl[index], env)
-                        index +=1
-                    if type(evl[index]) == int or type(evl[index]) == float:
-                        function.params[p] = evl[index]
-                        index +=1
-                var = evaluate_helper(function.function, function.params)
-                # print(var)
-                # print(function.params, function.function)
-                return var
-            else:
-                orig_env = env.copy()
-                for index, var in enumerate(evl):
-                    if type(var) == str:
-                        evl[index] = get_env(orig_env, var)[var]
-                        # env = orig_env
-                    if type(var) == list:
-                        evl[index] = evaluate_helper(var, env)
-                return env[keyword](evl)
-
-    # print(env)
-
-def evaluate_helper_1(tree):
-    if type(tree) == int or type(tree) == float:
-        return tree
-    elif type(tree) == str:
-        if tree in carlae_builtins:
-            return tree
-        else:
-            raise EvaluationError
-    else:
-        if len(tree) == 1:
-            return tree
-        return carlae_builtins[tree[0]](tree[1:])
-
-# def_env = {'parent': carlae_builtins}
-
+# create builtins and new env
 builtins = Environment(None)
-# builtins.update_env(carlae_builtins)
 builtins.env = carlae_builtins
 def_env = Environment(builtins)
 
-# def make_new_env(env = None):
-#     if not env:
-#         def_env = {'parent': carlae_builtins}
-#         return def_env
-#     return env
-
 def result_and_env(tree, env = None):
-    # if env == None:
-    #     env = {'parent': carlae_builtins}
-    # result = evaluate(tree, env)
-    # # print(result)
-    # return (result, env)
-    
-    # all_parent = Environment(None)
-    # all_parent.update_env(carlae_builtins)
-    # if not env:
-    #     env = Environment(all_parent)
-    # result = evaluate(tree, env)
-    # return (result, env)
+    """
+    function to return both the result and current environment
+    """
+    # create original parent of all: builtins
     builtins = Environment(None)
-    # builtins.update_env(carlae_builtins)
     builtins.env = carlae_builtins
+    # if env doesn't exist, create new env
     if not env:
         env = Environment(builtins)
+    # get result from evaluate
     result = evaluate(tree, env)
-    # print(result)
+    # return result and env
     return (result, env)
 
 def REPL():
+    """
+    Read, Evaluate, Print Loop for testing code
+    """
+    # grab input
     inp = input('inpt > ')
+    # while not quit
     while inp != 'QUIT':
+        # try to evaluate input
         try:
-            env = make_new_env()
-            # print('  outpt > ', result_and_env(parse(tokenize(inp)), def_env))
             print('  outpt > ', evaluate(parse(tokenize(inp)), def_env))
-            # print(result_and_env(parse(tokenize(inp)), def_env))
+        # catch exception, print
         except:
             e = sys.exc_info()[0]
             print('  outpt: ', e)
-        # print(evaluate(parse(tokenize(inp))))
+        # grab next output
         inp = input('inpt > ')
 
 if __name__ == '__main__':
