@@ -1,0 +1,36 @@
+[
+  {
+    "output": "SOMETHING",
+    "ok": true
+  },
+  {
+    "output": [
+      5040,
+      362880,
+      6,
+      2
+    ],
+    "ok": true
+  },
+  {
+    "output": 0,
+    "ok": true
+  },
+  {
+    "output": "SOMETHING",
+    "ok": true
+  },
+  {
+    "output": [
+      5040,
+      362880,
+      6,
+      2
+    ],
+    "ok": true
+  },
+  {
+    "output": 0,
+    "ok": true
+  }
+]

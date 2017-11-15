@@ -1,0 +1,1 @@
+(reduce (lambda (x y) (* (/ 1 x) y)) (list 1 2 3 4) 2)

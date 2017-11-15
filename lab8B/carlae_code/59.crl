@@ -1,0 +1,5 @@
+(define x 28)
+(define (foo x) (begin (let ((y (+ x 2)) (z (* x 3))) (set! x (+ y z))) x))
+(foo 9)
+x
+y

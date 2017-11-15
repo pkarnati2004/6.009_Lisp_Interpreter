@@ -1,0 +1,10 @@
+[
+  {
+    "output": "SOMETHING",
+    "ok": true
+  },
+  {
+    "output": 6,
+    "ok": true
+  }
+]

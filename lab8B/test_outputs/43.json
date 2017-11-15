@@ -1,0 +1,16 @@
+[
+  {
+    "output": [
+      4
+    ],
+    "ok": true
+  },
+  {
+    "output": 4,
+    "ok": true
+  },
+  {
+    "type": "EvaluationError",
+    "ok": false
+  }
+]
