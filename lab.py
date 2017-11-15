@@ -9,29 +9,30 @@ class EvaluationError(Exception):
 
 
 class Function:
-    def __init__(self, parent, function):
+    def __init__(self, params, parent, function):
         """
             intialize values for function
         """
-        self.params = {}
-        self.env = parent
+        self.params = params
+        self.env = parent.copy()
+        # self.env = dict(parent)
         self.function = function
 
-    def start_params(self, params):
-        """
-            assing the paramters to blank variables in the function
-        """
-        for p in params:
-            self.params[p] = None
-        self.params['parent'] = self.env
+    # def start_params(self, params):
+    #     """
+    #         assing the paramters to blank variables in the function
+    #     """
+    #     for p in params:
+    #         self.params[p] = None
+    #     self.params['parent'] = self.env
 
     # def assign_params(self, values):
     #     index = 0
     #     for p in self.params:
     #         self.params[p] = values[index]
     #         index +=1
-    def get_params(self):
-        return list(self.params.keys())
+    # def get_params(self):
+    #     return list(self.params.keys())
 
     def __str__(self):
         # print('here i am')
@@ -53,13 +54,17 @@ class Function:
     #     return self.function
 
 class Environment:
-    def __init__(self, parent, env):
-        self.env = env
+    def __init__(self, parent):
+        self.env = {}
         self.parent = parent
     def access_env(self):
         return self.env
-    def check_val(self, val):
-        raise NotImplementedError
+    # def check_val(self, val):
+    #     raise NotImplementedError
+    def add_val(self, var, val):
+        self.env[var] = val
+    def update_env(self, new_env):
+        self.env.update(new_env)
 
 def tokenize(source):
     """
@@ -203,6 +208,82 @@ def get_env(env, symbol):
             new_env = new_env['parent']
     return None
 
+def evaluate_function(keyword, evl):
+    if keyword in carlae_builtins.values():
+        return keyword(evl)
+    elif len(keyword.params) != len(evl):
+        raise EvaluationError
+    elif type(keyword) != Function:
+        raise EvaluationError
+    else:
+        # print('here')
+        # print(keyword.env)
+        for i in range(len(evl)):
+            evaluate_helper(['define', keyword.params[i], evl[i]], keyword.env)
+        # print(keyword.)
+        return evaluate_helper(keyword.function, keyword.env)
+
+def evaluate_helper(tree, env = None):
+    if type(tree) == int or type(tree) == float:
+        return tree
+    elif type(tree) == str:
+        try:
+            if tree not in env:
+                env = get_env(env, tree)
+            return env[tree]
+        except:
+            raise EvaluationError
+    elif type(tree) == Function:
+        return tree
+    elif type(tree) == list:
+        # if len(tree) == 1:
+        #     return tree[0]
+        if not tree:
+            raise EvaluationError
+        try:
+            keyword, var, evl = tree[0], tree[1], tree[2]
+        except:
+            keyword, rest = tree[0], tree[1:]
+        # print(keyword, var, evl)
+        if keyword == 'define':
+            # if type(var) == list:
+            # var, evl = rest[0], rest[1]
+            # print(var, evl)
+            if type(var) == list:
+                new_def = ['define', var[0], ['lambda', var[1:], evl]]
+                # new_def = ['define', rest[0][1], rest[0][1:], rest[1]]
+                # print(new_def)
+                val = evaluate_helper(new_def[2], env)
+                # print(val)
+                env[new_def[1]] = val
+                return val
+            else:
+                val = evaluate_helper(evl, env)
+                # val = evaluate_helper(rest[1], env)
+                env[var] = val
+                return val
+        elif keyword == 'lambda':
+            # var, evl = rest[0], rest[1]
+            function = Function(var, env, evl)
+            return function
+        else:
+            # print('here')
+            try:
+                function = evaluate_helper(keyword, env)
+                # print(function)
+                params = []
+                for val in tree[1:]:
+                    v = evaluate_helper(val, env)
+                    # print(v)
+                    params.append(v)
+                # params = [evaluate_helper(i, env) for i in tree[1:]]
+                # print(function, params)
+                return evaluate_function(function, params)
+            except:
+                raise EvaluationError
+    else:
+        raise EvaluationError
+
 def evaluate(tree, env = None):
     """
     Evaluate the given syntax tree according to the rules of the carlae
@@ -220,7 +301,7 @@ def evaluate(tree, env = None):
     return evaluate_helper(tree, env)
 
 
-def evaluate_helper(tree, env = None):
+def evaluate_helper_2(tree, env = None):
     # print(tree, env)
     if type(tree) == int or type(tree) == float:
         return tree
@@ -234,26 +315,13 @@ def evaluate_helper(tree, env = None):
     elif type(tree) == list:
         if len(tree) == 1:
             return tree[0]
+        if len(tree) == 0:
+            raise EvaluationError
         keyword, evl = tree[0], tree[1:]
         # print(keyword, evl)
-        # if type(evl) == list:
-        #     # val = 0
-        #     # for e in evl:
-        #     #     print(e)
-        #     #     val += evaluate_helper(e, env)
-        #     # print(val)
-        #     # key, e = evl[0][0], evl[0][1:][0]
-        #     # print(key, e)
-        #     # val = evaluate_helper([key, e], env)
-        #     # print(val)
-        #     for e in evl[0]:
-        #         print('first')
-        #         print(e)
-        #         # print(e)
-        #         x = evaluate_helper(e, env)
 
         if type(keyword) == list:
-            # print(keyword)
+            # print('here')
             f = evaluate_helper(keyword, env)
             # print([f, evl])
             # print(env)
@@ -271,9 +339,12 @@ def evaluate_helper(tree, env = None):
             params = function.get_params()
             # print(function, params, evl[0])
             evl = evl[0]
+            # print(evl, params)
+            if len(evl) != len(params[1:]):
+                raise EvaluationError
             # print(params, evl)
             index = 0
-            for p in params:
+            for p in params[1:]:
                 if p == 'parent':
                     continue
                 # print(p, evl[index], type(evl[index]))
@@ -296,11 +367,19 @@ def evaluate_helper(tree, env = None):
             # env[keyword] = val
             # print('evl', evl)
             var, ev = evl[0], evl[1]
-            # print('ev', ev)
-            val = evaluate_helper(ev, env)
-            # print('the val is', val)
-            env[var] = val
-            return val
+            # print('var', var, 'ev', ev)
+            if type(var) == list:
+                new_def = ['define', var[0], ['lambda', var[1:], ev]]
+                # print(new_def)
+                val = evaluate_helper(new_def, env)
+                env[var[0]] = val
+                # print(val)
+                return val
+            else:
+                val = evaluate_helper(ev, env)
+                # print('the val is', val)
+                env[var] = val
+                return val
 
         elif keyword == 'lambda':
             params, function = evl
@@ -312,23 +391,27 @@ def evaluate_helper(tree, env = None):
             return function
         
         elif keyword not in env:
+            # print('here')
             # print(env)
-            orig_env = env.copy()
-            work_env = get_env(env, keyword)
-            # print('working', work_env)
-            # print('original', orig_env)
-            if not work_env:
+            try:
+                orig_env = env.copy()
+                work_env = get_env(env, keyword)
+                # print('working', work_env)
+                # print('original', orig_env)
+                if not work_env:
+                    raise EvaluationError
+                # return evaluate_helper(tree, env)
+                for index, var in enumerate(evl):
+                    if type(var) == str:
+                        # print(var, 'is not an int')
+                        evl[index] = get_env(orig_env, var)[var]
+                        # env = orig_env
+                    if type(var) == list:
+                        evl[index] = evaluate(var, env)
+                # print(evl)
+                return work_env[keyword](evl)
+            except:
                 raise EvaluationError
-            # return evaluate_helper(tree, env)
-            for index, var in enumerate(evl):
-                if type(var) == str:
-                    # print(var, 'is not an int')
-                    evl[index] = get_env(orig_env, var)[var]
-                    # env = orig_env
-                if type(var) == list:
-                    evl[index] = evaluate(var, env)
-            # print(evl)
-            return work_env[keyword](evl)
 
         elif keyword in env:
             if type(env[keyword]) == Function:
