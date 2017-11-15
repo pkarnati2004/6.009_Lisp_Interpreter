@@ -360,30 +360,27 @@ def evaluate(tree, env = None):
     """
     # raise NotImplementedError
 
-    # create original parent of all: builtins
-    builtins = Environment(None)
-    builtins.env = carlae_builtins
-    # if env doesn't exist, create new env with this as parent
-    if not env:
-        env = Environment(builtins)
+    # create working env
+    env = create_new_env(env)
     # run helper and get values
     return evaluate_helper(tree, env)
 
-# create builtins and new env
-builtins = Environment(None)
-builtins.env = carlae_builtins
-def_env = Environment(builtins)
+def create_new_env(env):
+    # create original parent of all: builtins
+    builtins = Environment(None)
+    builtins.env = carlae_builtins
+    # if parent doesn't exist, create new env with this as parent
+    if not env:
+        env = Environment(builtins)
+    # return env
+    return env
 
 def result_and_env(tree, env = None):
     """
     function to return both the result and current environment
     """
-    # create original parent of all: builtins
-    builtins = Environment(None)
-    builtins.env = carlae_builtins
-    # if env doesn't exist, create new env
-    if not env:
-        env = Environment(builtins)
+    # create env from helper
+    env = create_new_env(env)
     # get result from evaluate
     result = evaluate(tree, env)
     # return result and env
@@ -396,10 +393,11 @@ def REPL():
     # grab input
     inp = input('inpt > ')
     # while not quit
+    env = create_new_env(None)
     while inp != 'QUIT':
         # try to evaluate input
         try:
-            print('  outpt > ', evaluate(parse(tokenize(inp)), def_env))
+            print('  outpt > ', evaluate(parse(tokenize(inp)), env))
         # catch exception, print
         except:
             e = sys.exc_info()[0]
