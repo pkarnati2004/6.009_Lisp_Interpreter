@@ -85,6 +85,16 @@ class LinkedList:
             prev.next = LinkedList(self.elt)
             prev = prev.next
         return new
+    def __add__(self, other):
+        if self is None:
+            return other
+        if other is None:
+            return self
+        self = self.copy()
+        last = self.get_last()
+        o = other.copy()
+        last.add_next(o)
+        return self
 
 def tokenize(source):
     """
@@ -471,47 +481,62 @@ def evaluate_helper(tree, env = None):
             # print(ls.val_at_index(index))
             return ls.val_at_index(index)
         elif keyword == 'concat':
-            print(keyword, 'here i am', tree[1])
+            print(tree)
+            # print(keyword, 'here i am', tree[1])
             # ls = evaluate_helper(tree[1], env)
             # ls.print()
             # copy = ls.copy()
             # copy.print()
             # print(tree[1:], len(tree[1:]))
             if len(tree) == 1:
-                return LinkedList(None)
+                return None
             if len(tree[1:]) == 1:
                 ls = evaluate_helper(tree[1], env)
+                ls.print()
                 return ls.copy()
-            for index, t in enumerate(tree[1:]):
-                # print(index, t)
-                if type(t) == str:
-                    # print('i am a str')
-                    ls = evaluate_helper(t, env)
-                    tree[index+1] = ls.copy()
-                    # print(tree[index])
+            # for index, t in enumerate(tree[1:]):
+            #     # print(index, t)
+            #     if type(t) == str:
+            #         # print('i am a str')
+            #         ls = evaluate_helper(t, env)
+            #         tree[index+1] = ls.copy()
+            #         # print(tree[index])
             # print(tree)
             ls = evaluate_helper(tree[1], env)
-            prev = ls
+            # start = ls.copy()
+            # prev = start
+            start = ls
+            print(start)
             # prev = ls.copy()
-            print('ls is')
-            ls.print()
+            # print('ls is')
+            # ls.print()
+            # for t in tree[2:]:
+            #     # print('t is', t)
+            #     new = evaluate_helper(t, env)
+            #     # print('new is')
+            #     # new.print()
+            #     n = new.copy()
+            #     # print('blah')
+            #     last = prev.get_last()
+            #     # print('last is')
+            #     # last.print()
+            #     # last.next = new
+            #     last.add_next(n)
+            #     # print('total is')
+            #     # ls.print()
+            #     prev = n
+            #     # print('prev is now')
+            #     # prev.print()
             for t in tree[2:]:
-                # print('t is', t)
                 new = evaluate_helper(t, env)
-                # print('new is')
-                new.print()
-                # print('blah')
-                last = prev.get_last()
-                # print('last is')
-                last.print()
-                last.next = new
-                # print('total is')
-                # ls.print()
-                prev = new
-                # print('prev is now')
-                # prev.print()
-            ls.print()
-            return ls
+                if start is None:
+                    start = new
+                else:
+                    start = start + new
+            # ls.print()
+            start.print()
+            # print(start.val_at_index(1))
+            return start
         # if this is a function
         elif keyword == 'lambda':
             # create a function with the env as parent, variables,

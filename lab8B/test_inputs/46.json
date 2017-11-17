@@ -1,77 +1,71 @@
 [
-  [
-    "concat",
     [
-      "list",
-      9,
-      8,
-      7
-    ]
-  ],
-  [
-    "concat",
-    [
-      "list",
-      1
+        "concat", [
+            "list",
+            9,
+            8,
+            7
+        ]
     ],
     [
-      "list",
-      2,
-      3,
-      4,
-      5,
-      9,
-      10
-    ]
-  ],
-  [
-    "concat",
-    [
-      "list",
-      1
+        "concat", [
+            "list",
+            1
+        ],
+        [
+            "list",
+            2,
+            3,
+            4,
+            5,
+            9,
+            10
+        ]
     ],
     [
-      "list",
-      2
+        "concat", [
+            "list",
+            1
+        ],
+        [
+            "list",
+            2
+        ],
+        [
+            "list",
+            3
+        ]
     ],
     [
-      "list",
-      3
-    ]
-  ],
-  [
-    "concat",
-    [
-      "concat"
+        "concat", [
+            "concat"
+        ],
+        [
+            "list",
+            1
+        ]
     ],
     [
-      "list",
-      1
-    ]
-  ],
-  [
-    "concat",
-    [
-      "list",
-      1
+        "concat", [
+            "list",
+            1
+        ],
+        [
+            "concat"
+        ]
     ],
     [
-      "concat"
-    ]
-  ],
-  [
-    "define",
-    "x",
+        "define",
+        "x", [
+            "list",
+            1
+        ]
+    ],
     [
-      "list",
-      1
-    ]
-  ],
-  [
-    "concat",
-    "x",
-    "x",
+        "concat",
+        "x",
+        "x",
+        "x"
+    ],
     "x"
-  ],
-  "x"
 ]
