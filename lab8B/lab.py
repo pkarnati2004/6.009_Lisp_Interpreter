@@ -47,6 +47,45 @@ class Environment:
         for var in self.env:
             print(var, '->', self.env[var])
 
+class LinkedList:
+    def __init__(self, elt):
+        self.elt = elt
+        self.next = None
+    def add_next(self, val):
+        self.next = val
+    def print(self):
+        string = 'this list contains '
+        while self != None:
+            string += str(self.elt) + ' ' 
+            self = self.next
+        print(string)
+        # return
+    def length(self):
+        length = 0
+        while self != None:
+            length += 1
+            self = self.next
+        return length
+    def val_at_index(self, index):
+        val = 0
+        while val != index and self != None:
+            self = self.next
+            val += 1
+        return self.elt
+    def get_last(self):
+        ls = self
+        while ls.next != None:
+            ls = ls.next
+        return ls
+    def copy(self):
+        new = LinkedList(self.elt)
+        prev = new
+        while self.next != None:
+            self = self.next
+            prev.next = LinkedList(self.elt)
+            prev = prev.next
+        return new
+
 def tokenize(source):
     """
     Splits an input string into meaningful tokens (left parens, right parens,
@@ -304,10 +343,10 @@ def evaluate_function(keyword, evl):
         return keyword(evl)
     # if the parameter lengths do not match, raise Error
     elif len(keyword.params) != len(evl):
-        raise EvaluationError
+        raise EvaluationError('Parameters are not the same length')
     # if this is not a function, raise Error
     elif type(keyword) != Function:
-        raise EvaluationError
+        raise EvaluationError('This is not a function')
     else:
         # print(keyword, evl)
         # print('here')
@@ -323,8 +362,9 @@ def evaluate_helper(tree, env = None):
     """ 
     recursive helper for evaluate
     """
+    # print(type(tree))
     # if tree is simple int or float, return value
-    if type(tree) == int or type(tree) == float:
+    if type(tree) == int or type(tree) == float or type(tree) == LinkedList:
         return tree
     # if tree is a string, try to return the value of the
     # var or raise an Exception if it does not exist
@@ -334,7 +374,7 @@ def evaluate_helper(tree, env = None):
         try:
             return get_env_part_2(env, tree)
         except:
-            raise EvaluationError
+            raise EvaluationError('This value does not exist')
     # if tree is a function return function
     elif type(tree) == Function:
         return tree
@@ -342,7 +382,7 @@ def evaluate_helper(tree, env = None):
     elif type(tree) == list:
         # if tree is empty, raise error
         if not tree:
-            raise EvaluationError
+            raise EvaluationError('This is an empty list')
         # grab the keyword, var, and evl values
         try:
             keyword, var, evl = tree[0], tree[1], tree[2]
@@ -375,15 +415,103 @@ def evaluate_helper(tree, env = None):
                 return val
         elif keyword == 'if':
             conditional = evaluate_helper(tree[1], env)
-            TRUEXP, FALSEEXP = tree[2], tree[3]
+            true_exp, false_exp = tree[2], tree[3]
             if conditional:
-                return evaluate_helper(TRUEXP, env)
+                return evaluate_helper(true_exp, env)
             else:
-                return evaluate_helper(FALSEEXP, env)
+                return evaluate_helper(false_exp, env)
         elif keyword == 'and' or keyword == 'or' or keyword == 'not':
             all_conditionals = tree[1:]
             function = evaluate_helper(keyword, env)
             return function(all_conditionals, env)
+        elif keyword == 'list':
+            args = tree[1:]
+            if args == []:
+                ls = LinkedList(None)
+                return ls
+            else:
+                ls = LinkedList(args[0])
+                prev = ls
+                for val in args[1:]:
+                    new = LinkedList(val)
+                    prev.next = new
+                    prev = new
+                # ls.print()
+                return ls
+        elif keyword == 'car' or keyword == 'cdr':
+            ls = evaluate_helper(tree[1], env)
+            if type(ls) != LinkedList:
+                raise EvaluationError('This is not a list')
+            if ls.elt is None:
+                raise EvaluationError('This is an empty list')
+            # print(tree[1])
+            if keyword == 'car':
+                # ls.print()
+                return ls.elt
+            else:
+                ls = ls.next
+                return ls
+        elif keyword == 'length':
+            ls = evaluate_helper(tree[1], env)
+            if type(ls) != LinkedList:
+                raise EvaluationError('This is not a list')
+            if ls.elt is None:
+                return 0
+            # print(ls.length())
+            return ls.length()
+        elif keyword == 'elt-at-index':
+            ls = evaluate_helper(tree[1], env)
+            index = tree[2]
+            if type(ls) != LinkedList:
+                raise EvaluationError('This is not a list')
+            if ls.elt is None:
+                raise EvaluationError('This is an empty list')
+            if index >= ls.length():
+                raise EvaluationError('Index out of bounds')
+            # print(ls.val_at_index(index))
+            return ls.val_at_index(index)
+        elif keyword == 'concat':
+            print(keyword, 'here i am', tree[1])
+            # ls = evaluate_helper(tree[1], env)
+            # ls.print()
+            # copy = ls.copy()
+            # copy.print()
+            # print(tree[1:], len(tree[1:]))
+            if len(tree) == 1:
+                return LinkedList(None)
+            if len(tree[1:]) == 1:
+                ls = evaluate_helper(tree[1], env)
+                return ls.copy()
+            for index, t in enumerate(tree[1:]):
+                # print(index, t)
+                if type(t) == str:
+                    # print('i am a str')
+                    ls = evaluate_helper(t, env)
+                    tree[index+1] = ls.copy()
+                    # print(tree[index])
+            # print(tree)
+            ls = evaluate_helper(tree[1], env)
+            prev = ls
+            # prev = ls.copy()
+            print('ls is')
+            ls.print()
+            for t in tree[2:]:
+                # print('t is', t)
+                new = evaluate_helper(t, env)
+                # print('new is')
+                new.print()
+                # print('blah')
+                last = prev.get_last()
+                # print('last is')
+                last.print()
+                last.next = new
+                # print('total is')
+                # ls.print()
+                prev = new
+                # print('prev is now')
+                # prev.print()
+            ls.print()
+            return ls
         # if this is a function
         elif keyword == 'lambda':
             # create a function with the env as parent, variables,
@@ -407,10 +535,10 @@ def evaluate_helper(tree, env = None):
                 return evaluate_function(function, params)
             except:
                 # raise Error if this doesn't work for some reason
-                raise EvaluationError
+                raise EvaluationError('Parameters are not the same length')
     else:
         # raise Error if nothing works
-        raise EvaluationError
+        raise EvaluationError('You fucked up')
 
 def evaluate(tree, env = None):
     """
@@ -449,6 +577,14 @@ def result_and_env(tree, env = None):
     # return result and env
     return (result, env)
 
+def evaluate_file(filename, env=None):
+    f = open(filename, 'r')
+    exp = f.read()
+    f.close()
+    env = create_new_env(env)
+    result = evaluate(parse(tokenize(exp)), env)
+    return result
+
 def REPL():
     """
     Read, Evaluate, Print Loop for testing code
@@ -457,15 +593,16 @@ def REPL():
     inp = input('inpt > ')
     # while not quit
     env = create_new_env(None)
-    while inp != 'QUIT':
+    while inp != 'QUIT' and inp != 'quit':
         # try to evaluate input
-        try:
-            print('  outpt > ', evaluate(parse(tokenize(inp)), env))
-        # catch exception, print
-        except:
-            e = sys.exc_info()[0]
-            print('  outpt: ', e)
+        # try:
+        #     print('  outpt > ', evaluate(parse(tokenize(inp)), env))
+        # # catch exception, print
+        # except:
+        #     e = sys.exc_info()[0]
+        #     print('  outpt: ', e)
         # grab next output
+        print('  outpt > ', evaluate(parse(tokenize(inp)), env))
         inp = input('inpt > ')
 
 if __name__ == '__main__':
