@@ -51,6 +51,18 @@ class LinkedList:
     def __init__(self, elt):
         self.elt = elt
         self.next = None
+    def __add__(self, other):
+        if self is None:
+            return other
+        if other is None:
+            return self
+        if self is None and other is None:
+            return None
+        self = self.copy()
+        last = self.get_last()
+        o = other.copy()
+        last.add_next(o)
+        return self
     def add_next(self, val):
         self.next = val
     def print(self):
@@ -60,6 +72,10 @@ class LinkedList:
             self = self.next
         print(string)
         # return
+    def car(self):
+        return self.elt
+    def cdr(self):
+        return self.next
     def length(self):
         length = 0
         while self != None:
@@ -85,16 +101,67 @@ class LinkedList:
             prev.next = LinkedList(self.elt)
             prev = prev.next
         return new
-    def __add__(self, other):
-        if self is None:
-            return other
-        if other is None:
-            return self
-        self = self.copy()
-        last = self.get_last()
-        o = other.copy()
-        last.add_next(o)
-        return self
+    def map(self, function):
+        # new = LinkedList(function([self.elt]))
+        new = LinkedList(evaluate_function(function, [self.elt]))
+        prev = new
+        while self.next != None:
+            self = self.next
+            # prev.next = LinkedList(function([self.elt]))
+            prev.next = LinkedList(evaluate_function(function, [self.elt]))
+            prev = prev.next
+        return new
+    def filter(self, function):
+        # # print(function)
+        # # new = evaluate_helper(['if', evaluate_function(function, [self.elt]), LinkedList(self.elt), None])
+        # if evaluate_function(function, [self.elt]):
+        #     new = LinkedList(self.elt)
+        # else: new = None
+        # # # print('this valu ei s', new)
+        # # if 
+        # prev = new
+        # while self.next != None:
+        #     self = self.next
+        #     print(self.elt)
+        #     # prev = prev + evaluate_helper(['if', evaluate_function(function, [self.elt]), LinkedList(self.elt), None])
+        #     current = LinkedList(self.elt) if evaluate_function(function, [self.elt]) else None
+        #     # current.print()
+        #     if prev is None:
+        #         prev = current
+        #     if current is None:
+        #         prev = prev
+        #     else:
+        #         last = prev.copy() 
+        #         # prev = prev + current
+        #         last.add_next(current)
+        #     prev = prev.next
+        # # new.print()
+        # return new
+        # self = None
+        # return self + LinkedList(1)
+        if evaluate_function(function, [self.elt]):
+            new = LinkedList(self.elt)
+        else: new = None
+        prev = new
+        while self.next != None:
+            self = self.next
+            # print(self.elt)
+            current = LinkedList(self.elt) if evaluate_function(function, [self.elt]) else None
+            if prev is None:
+                prev = current
+                if new is None:
+                    new = prev
+                # prev.print()
+                # prev = prev.next
+            elif current is None:
+                prev = prev
+            else:
+                last = prev.get_last()
+                last.add_next(current)
+                prev = prev.next
+        # new.print()
+        return new
+        
 
 def tokenize(source):
     """
@@ -347,6 +414,8 @@ def evaluate_function(keyword, evl):
     helper to evaluate a function given a keyword and the params
     to evaluate
     """
+    # print(keyword)
+    # print(keyword.params, evl)
     # if this is a basic keyword in builtins, evaluate builtin
     if keyword in carlae_builtins.values():
         # print('here')
@@ -366,13 +435,14 @@ def evaluate_function(keyword, evl):
         for i in range(len(evl)):
             evaluate_helper(['define', keyword.params[i], evl[i]], this_env)
         # evaluate this function in the environment with updated parameters
+        # print(keyword.function, keyword.params, this_env)
         return evaluate_helper(keyword.function, this_env)
 
 def evaluate_helper(tree, env = None):
     """ 
     recursive helper for evaluate
     """
-    # print(type(tree))
+    # print(tree, type(tree))
     # if tree is simple int or float, return value
     if type(tree) == int or type(tree) == float or type(tree) == LinkedList:
         return tree
@@ -381,12 +451,15 @@ def evaluate_helper(tree, env = None):
     elif type(tree) == str:
         if tree == '#t' or tree == '#f':
             return True if tree == '#t' else False
+        if tree == '0' or tree == '0.0':
+            return int(0) if tree == '0' else float(0.0)
         try:
             return get_env_part_2(env, tree)
         except:
             raise EvaluationError('This value does not exist')
     # if tree is a function return function
     elif type(tree) == Function:
+        # print('hello i am also here')
         return tree
     # if tree is a list, do things with components
     elif type(tree) == list:
@@ -424,6 +497,7 @@ def evaluate_helper(tree, env = None):
                 # print(env)
                 return val
         elif keyword == 'if':
+            # print('hello i am here')
             conditional = evaluate_helper(tree[1], env)
             true_exp, false_exp = tree[2], tree[3]
             if conditional:
@@ -444,7 +518,7 @@ def evaluate_helper(tree, env = None):
                 prev = ls
                 for val in args[1:]:
                     new = LinkedList(val)
-                    prev.next = new
+                    prev.add_next(new)
                     prev = new
                 # ls.print()
                 return ls
@@ -457,11 +531,15 @@ def evaluate_helper(tree, env = None):
             # print(tree[1])
             if keyword == 'car':
                 # ls.print()
-                return ls.elt
+                # return ls.elt
+                return ls.car()
             else:
-                ls = ls.next
-                return ls
+                # ls = ls.next
+                # return ls
+                return ls.cdr()
         elif keyword == 'length':
+            if tree[1][0] != 'list':
+                tree[1] = ['list'] + tree[1]
             ls = evaluate_helper(tree[1], env)
             if type(ls) != LinkedList:
                 raise EvaluationError('This is not a list')
@@ -481,62 +559,32 @@ def evaluate_helper(tree, env = None):
             # print(ls.val_at_index(index))
             return ls.val_at_index(index)
         elif keyword == 'concat':
-            print(tree)
-            # print(keyword, 'here i am', tree[1])
-            # ls = evaluate_helper(tree[1], env)
-            # ls.print()
-            # copy = ls.copy()
-            # copy.print()
-            # print(tree[1:], len(tree[1:]))
             if len(tree) == 1:
                 return None
-            if len(tree[1:]) == 1:
-                ls = evaluate_helper(tree[1], env)
-                ls.print()
-                return ls.copy()
-            # for index, t in enumerate(tree[1:]):
-            #     # print(index, t)
-            #     if type(t) == str:
-            #         # print('i am a str')
-            #         ls = evaluate_helper(t, env)
-            #         tree[index+1] = ls.copy()
-            #         # print(tree[index])
-            # print(tree)
+            # if len(tree[1:]) == 1:
+            #     ls = evaluate_helper(tree[1], env)
+            #     return ls.copy()
             ls = evaluate_helper(tree[1], env)
-            # start = ls.copy()
-            # prev = start
             start = ls
-            print(start)
-            # prev = ls.copy()
-            # print('ls is')
-            # ls.print()
-            # for t in tree[2:]:
-            #     # print('t is', t)
-            #     new = evaluate_helper(t, env)
-            #     # print('new is')
-            #     # new.print()
-            #     n = new.copy()
-            #     # print('blah')
-            #     last = prev.get_last()
-            #     # print('last is')
-            #     # last.print()
-            #     # last.next = new
-            #     last.add_next(n)
-            #     # print('total is')
-            #     # ls.print()
-            #     prev = n
-            #     # print('prev is now')
-            #     # prev.print()
             for t in tree[2:]:
                 new = evaluate_helper(t, env)
                 if start is None:
                     start = new
                 else:
                     start = start + new
-            # ls.print()
-            start.print()
-            # print(start.val_at_index(1))
             return start
+        elif keyword == 'map':
+            function = evaluate_helper(tree[1], env)
+            ls = evaluate_helper(tree[2], env)
+            new = ls.map(function)
+            # new.print()
+            return new
+        elif keyword == 'filter':
+            function = evaluate_helper(tree[1], env)
+            ls = evaluate_helper(tree[2], env)
+            new = ls.filter(function)
+            # new.print()
+            return new
         # if this is a function
         elif keyword == 'lambda':
             # create a function with the env as parent, variables,
@@ -549,6 +597,7 @@ def evaluate_helper(tree, env = None):
                 # grab the function of the keyword
                 function = evaluate_helper(keyword, env)
                 params = []
+                # print('here is function', function)
                 # for every value in the rest which is a paren
                 for val in tree[1:]:
                     # evaluate this val to get value
@@ -557,6 +606,7 @@ def evaluate_helper(tree, env = None):
                     params.append(v)
                 # evaluate this function with these parameters
                 # print(function, params)
+                # print('stuff is ', function, params)
                 return evaluate_function(function, params)
             except:
                 # raise Error if this doesn't work for some reason
@@ -626,7 +676,7 @@ def REPL():
         # except:
         #     e = sys.exc_info()[0]
         #     print('  outpt: ', e)
-        # grab next output
+        # # grab next output
         print('  outpt > ', evaluate(parse(tokenize(inp)), env))
         inp = input('inpt > ')
 
