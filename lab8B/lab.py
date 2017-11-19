@@ -49,60 +49,113 @@ class Environment:
 
 class LinkedList:
     def __init__(self, elt):
+        """
+        initialize values for LinkedList:
+            elt: current value
+            next: pointer to next element
+        """
         self.elt = elt
         self.next = None
     def __add__(self, other):
-        if self is None:
+        """
+        function to specify concatenation of lists
+        """
+        # if this is None or the value is none, return the list other
+        if self is None or self.elt is None:
             return other
-        if other is None:
+        # if other is None or other value is none, return this list
+        if other is None or other.elt is None:
             return self
-        if self is None and other is None:
-            return None
+        # copy the list and get last element
         self = self.copy()
         last = self.get_last()
+        # copy other list
         o = other.copy()
+        # change next pointer of last element to other list and return 
         last.add_next(o)
         return self
     def add_next(self, val):
+        """
+        change the next pointer of list
+        """
         self.next = val
     def print(self):
+        """
+        string representation of list
+        """
+        # while self is not none, print this value
         string = 'this list contains '
         while self != None:
             string += str(self.elt) + ' ' 
+            # find next value
             self = self.next
+        # print the string
         print(string)
-        # return
     def car(self):
+        """
+        return first element aka this value
+        """
         return self.elt
     def cdr(self):
+        """
+        return everything but first element, aka next
+        """
         return self.next
     def length(self):
+        """
+        find length of list
+        """
+        # intiailze length value
         length = 0
+        # while next exists, increment length and find next
         while self != None:
             length += 1
             self = self.next
+        # return length
         return length
     def val_at_index(self, index):
+        """
+        find value at index in a list
+        """
+        # initialize place in list
         val = 0
+        # while next exists and val is not index, find next
         while val != index and self != None:
             self = self.next
+            # increment place in list aka val
             val += 1
+        # return value at this index
         return self.elt
     def get_last(self):
+        """
+        get last element in the list
+        """
+        # while next exists, set self to next
         ls = self
         while ls.next != None:
             ls = ls.next
+        # return last list
         return ls
     def copy(self):
+        """
+        copy the list
+        """
+        # copy first element
         new = LinkedList(self.elt)
         prev = new
+        # while next exists, find next and copy element
         while self.next != None:
             self = self.next
             prev.next = LinkedList(self.elt)
+            # change next pointer
             prev = prev.next
+        # return copy list
         return new
     def map(self, function):
-        # new = LinkedList(function([self.elt]))
+        """
+        map a function to every element in list
+        """
+        # copy first element to this function mapped to list elt
         new = LinkedList(evaluate_function(function, [self.elt]))
         prev = new
         while self.next != None:
@@ -517,6 +570,9 @@ def evaluate_helper(tree, env = None):
                     prev.add_next(new)
                     prev = new
                 # ls.print()
+                # ls = ls.remove_none()
+                # print('after remove none')
+                # ls.print()
                 return ls
         elif keyword == 'car' or keyword == 'cdr':
             ls = evaluate_helper(tree[1], env)
@@ -571,6 +627,7 @@ def evaluate_helper(tree, env = None):
                     start = new
                 else:
                     start = start + new
+            # start.print()
             return start
         elif keyword == 'map':
             function = evaluate_helper(tree[1], env)
@@ -697,14 +754,14 @@ def REPL():
     env = create_new_env(None)
     while inp != 'QUIT' and inp != 'quit':
         # try to evaluate input
-        # try:
-        #     print('  outpt > ', evaluate(parse(tokenize(inp)), env))
-        # # catch exception, print
-        # except:
-        #     e = sys.exc_info()[0]
-        #     print('  outpt: ', e)
-        # # grab next output
-        print('  outpt > ', evaluate(parse(tokenize(inp)), env))
+        try:
+            print('  outpt > ', evaluate(parse(tokenize(inp)), env))
+        # catch exception, print
+        except:
+            e = sys.exc_info()[0]
+            print('  outpt: ', e)
+        # grab next output
+        # print('  outpt > ', evaluate(parse(tokenize(inp)), env))
         inp = input('inpt > ')
 
 if __name__ == '__main__':
