@@ -112,33 +112,6 @@ class LinkedList:
             prev = prev.next
         return new
     def filter(self, function):
-        # # print(function)
-        # # new = evaluate_helper(['if', evaluate_function(function, [self.elt]), LinkedList(self.elt), None])
-        # if evaluate_function(function, [self.elt]):
-        #     new = LinkedList(self.elt)
-        # else: new = None
-        # # # print('this valu ei s', new)
-        # # if 
-        # prev = new
-        # while self.next != None:
-        #     self = self.next
-        #     print(self.elt)
-        #     # prev = prev + evaluate_helper(['if', evaluate_function(function, [self.elt]), LinkedList(self.elt), None])
-        #     current = LinkedList(self.elt) if evaluate_function(function, [self.elt]) else None
-        #     # current.print()
-        #     if prev is None:
-        #         prev = current
-        #     if current is None:
-        #         prev = prev
-        #     else:
-        #         last = prev.copy() 
-        #         # prev = prev + current
-        #         last.add_next(current)
-        #     prev = prev.next
-        # # new.print()
-        # return new
-        # self = None
-        # return self + LinkedList(1)
         if evaluate_function(function, [self.elt]):
             new = LinkedList(self.elt)
         else: new = None
@@ -149,8 +122,7 @@ class LinkedList:
             current = LinkedList(self.elt) if evaluate_function(function, [self.elt]) else None
             if prev is None:
                 prev = current
-                if new is None:
-                    new = prev
+                if new is None: new = prev
                 # prev.print()
                 # prev = prev.next
             elif current is None:
@@ -161,6 +133,14 @@ class LinkedList:
                 prev = prev.next
         # new.print()
         return new
+    def reduce(self, function, init):
+        val = self.elt
+        result = evaluate_function(function, [init, val])
+        while self.next != None:
+            self = self.next
+            val = self.elt
+            result = evaluate_function(function, [result, val])
+        return result
         
 
 def tokenize(source):
@@ -409,6 +389,15 @@ def get_env_part_2(env, symbol):
     # if not found, raise Error
     raise EvaluationError
 
+def get_env(env, symbol):
+    new_env = env
+    while new_env != None:
+        if symbol in new_env.env:
+            return new_env
+        else:
+            new_env = new_env.parent
+    raise EvaluationError
+
 def evaluate_function(keyword, evl):
     """
     helper to evaluate a function given a keyword and the params
@@ -514,9 +503,16 @@ def evaluate_helper(tree, env = None):
                 ls = LinkedList(None)
                 return ls
             else:
-                ls = LinkedList(args[0])
+                # print(args[0])
+                # print(evaluate_helper(args[0], env))
+                # ls = LinkedList(args[0])
+                ls = LinkedList(evaluate_helper(args[0], env))
                 prev = ls
+                # print(args[0])
                 for val in args[1:]:
+                    # print(val)
+                    # print(evaluate_helper(val, env))
+                    val = evaluate_helper(val, env)
                     new = LinkedList(val)
                     prev.add_next(new)
                     prev = new
@@ -538,9 +534,12 @@ def evaluate_helper(tree, env = None):
                 # return ls
                 return ls.cdr()
         elif keyword == 'length':
-            if tree[1][0] != 'list':
-                tree[1] = ['list'] + tree[1]
+            # if tree[1][0] != 'list':
+            #     # tree[1] = ['list'] + tree[1]
+            #     tree[1] = ['list', tree[1]]
+            # print(tree[1])
             ls = evaluate_helper(tree[1], env)
+            # ls.print()
             if type(ls) != LinkedList:
                 raise EvaluationError('This is not a list')
             if ls.elt is None:
@@ -585,6 +584,33 @@ def evaluate_helper(tree, env = None):
             new = ls.filter(function)
             # new.print()
             return new
+        elif keyword == 'reduce':
+            function = evaluate_helper(tree[1], env)
+            ls = evaluate_helper(tree[2], env)
+            init = evaluate_helper(tree[3], env)
+            return ls.reduce(function, init)
+        elif keyword == 'begin':
+            args = tree[1:][:]
+            last = len(args) - 1
+            for index, arg in enumerate(args):
+                if index == last:
+                    return evaluate_helper(arg, env)
+                evaluate_helper(arg, env)
+        elif keyword == 'let':
+            args = tree[1]
+            body = tree[2]
+            this_env = Environment(env)
+            for arg in args:
+                var, val = arg
+                val = evaluate_helper(val, env)
+                this_env.add_val(var, val)
+            return evaluate_helper(body, this_env)
+        elif keyword == 'set!':
+            var = tree[1]
+            expr = evaluate_helper(tree[2], env)
+            new_env = get_env(env, var)
+            new_env.add_val(var, expr)
+            return expr
         # if this is a function
         elif keyword == 'lambda':
             # create a function with the env as parent, variables,
@@ -654,11 +680,12 @@ def result_and_env(tree, env = None):
 
 def evaluate_file(filename, env=None):
     f = open(filename, 'r')
-    exp = f.read()
+    exp = ' '.join(line.strip() for line in f)
     f.close()
-    env = create_new_env(env)
     result = evaluate(parse(tokenize(exp)), env)
     return result
+
+x = "(begin (define (foo bar) (lambda (x y) (- bar x y))) (define bar 7) (define something (foo 6)) (list (something 2 3) ((foo 9) 8 7)))"
 
 def REPL():
     """
