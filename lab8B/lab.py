@@ -757,7 +757,7 @@ def evaluate_helper(tree, env = None):
                 raise EvaluationError('Parameters are not the same length')
     else:
         # raise Error if nothing works
-        raise EvaluationError('You fucked up')
+        raise EvaluationError('You messed up')
 
 def evaluate(tree, env = None):
     """
